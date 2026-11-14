@@ -61,11 +61,35 @@ def run_assertions(page: Path) -> bool:
     except Exception as e:
         print(f"  could not run vault-verify: {e}", file=sys.stderr)
         return False
-    rows = [l for l in r.stdout.splitlines() if page.name in l or f"{page.stem}.md" in l]
+    # v1.4.1: read vault-verify's report by BLOCKS. A failing or unknown claim prints as a page header ("    <rel>") with its claim and
+    # result indented under it, and those lines do not repeat the page name; v1.4 matched lines by substring, so it never saw its own
+    # page's failures (a failing claim passed --check) and could show another page whose name ends the same as its own.
+    try:
+        me = page.resolve().relative_to(VAULT.resolve()).as_posix()
+    except ValueError:
+        me = page.name
+    sect, cur, rows, failed = None, None, [], []
+    for l in r.stdout.splitlines():
+        s = l.strip()
+        if s.startswith(("FAILED", "UNKNOWN \u2014")):
+            sect, cur = "bad", None; continue
+        if s.startswith("holding:"):
+            sect, cur = "ok", None; continue
+        if sect == "bad" and s:
+            if l.startswith("    ") and not l.startswith("     "):
+                cur = s
+            if cur == me:
+                rows.append(l); failed.append(l)
+        elif sect == "ok" and s.endswith("(%s)" % me):
+            rows.append(l)
     for l in rows:
         print(f"    {l.strip()}")
-    failed = [l for l in rows if l.strip().startswith(("FAIL", "UNKNOWN"))] or \
-             [l for l in rows if "->" in l and " ok " not in l]
+    if not rows:
+        # v1.4.1: this page makes claims, so a report with no row for it means nothing was checked (vault-verify REFUSED on a
+        # different host than home_host, or printed no report at all). No report is not a pass.
+        why = next((l.strip() for l in r.stdout.splitlines() if "REFUSED" in l), "") or "vault-verify printed no row for this page"
+        print(f"  \u26a0 nothing was checked: {why}", file=sys.stderr)
+        return False
     if failed:
         print("  ⚠ assertions did not all pass — resolve before closing", file=sys.stderr)
         return False
@@ -96,9 +120,8 @@ def close(page: Path, why: str, when: str, reopen: bool, apply: bool) -> int:
     new_fm = re.sub(r"^status:\s*\S+", f"status: {target}", fm, count=1, flags=re.M)
     new_fm = re.sub(r"^closed:.*\n?", "", new_fm, flags=re.M)
     if not reopen:
-        new_fm = new_fm.rstrip("\n-\n").rstrip("\n")
-        if new_fm.endswith("---"):
-            new_fm = new_fm[:-3].rstrip("\n")
+        # v1.4.1: drop only a closing "---" LINE; rstrip("\n-\n") also ate any trailing "-" of the last field's value
+        new_fm = re.sub(r"(^|\n)---\s*$", "", new_fm.rstrip("\n")).rstrip("\n")
         new_fm += f"\nclosed: {when} — {why}\n---\n"
 
     verb = "REOPENED" if reopen else "CLOSED"

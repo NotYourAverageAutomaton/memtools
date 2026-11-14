@@ -16,7 +16,7 @@ from memtools_config import layout, load_config, vault_root
 
 VAULT = vault_root()
 CAND = layout(load_config(VAULT))["candidate_dir"]
-APPLIED = re.compile(r"^##\s*\[(\d{4}-\d{2}-\d{2})\]\s*applied\s*\|\s*\[\[([^\]]+)\]\]\s*(.*)$")
+APPLIED = re.compile(r"^##\s*\[(\d{4}-\d{2}-\d{2})\]\s*applied\s*\|\s*\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]\s*(.*)$")   # v1.4.1: alias and heading forms count
 
 VIOLATED = re.compile(r"^##\s*\[(\d{4}-\d{2}-\d{2})\]\s*(?:violated|failed)\s*\|\s*\[\[([^\]]+)\]\]\s*(.*)$")
 NO_PROMOTE = {"open_question", "self_model_hypothesis"}

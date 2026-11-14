@@ -105,9 +105,10 @@ Nothing is deleted by any tool. What is written, and where:
 python3 tests/test_vault_verify.py
 python3 tests/test_tools_smoke.py
 python3 tests/test_commit_and_lint.py
+python3 tests/test_review_fixes.py
 ```
 
-`test_tools_smoke.py` runs the note tools on a small made-up notes folder in a temp directory (22 checks, nothing written outside it, including that rotating the log loses no applied history and that a page name cannot reach outside the notes folder). `test_commit_and_lint.py` (17 checks) commits in a temp git repo with a local remote: a new file is committed under the agent's name, another agent's staged file is neither swept in nor unstaged, nothing-changed and deletions are handled, and a push made in between is rebased over; then lint's checks, with and without a schema. `test_vault_verify.py` has 38 controls: every kind answers UNKNOWN for an unreachable host, malformed claims are UNKNOWN, both answers are reachable for the simple kinds, a port bound to all interfaces fails and a loopback-only one passes (with sockets the test opens itself), and shell text in a claim is not executed.
+`test_tools_smoke.py` runs the note tools on a small made-up notes folder in a temp directory (22 checks, nothing written outside it, including that rotating the log loses no applied history and that a page name cannot reach outside the notes folder). `test_commit_and_lint.py` (17 checks) commits in a temp git repo with a local remote: a new file is committed under the agent's name, another agent's staged file is neither swept in nor unstaged, nothing-changed and deletions are handled, and a push made in between is rebased over; then lint's checks, with and without a schema. `test_vault_verify.py` has 38 controls: every kind answers UNKNOWN for an unreachable host, malformed claims are UNKNOWN, both answers are reachable for the simple kinds, a port bound to all interfaces fails and a loopback-only one passes (with sockets the test opens itself), and shell text in a claim is not executed. `test_review_fixes.py` (v1.4.1, 6 arms) holds one control per fix from an outside review (see CHANGELOG.md); run it with `<v1.4 tools dir> --control` and every arm must fail on the old code.
 
 ## What is not here
 

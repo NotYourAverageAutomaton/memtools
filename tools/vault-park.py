@@ -62,7 +62,7 @@ def main():
     fm, body = split_fm(text)
     if a.unpark:
         fm = set_field(fm, "status", "active")
-        fm = "\n".join(l for l in fm.split("\n") if not l.startswith("parked:"))
+        fm = "\n".join(l for l in fm.split("\n") if not l.startswith("parked:") and not re.match(r'^next_action:\s*"?PARKED ', l))   # v1.4.1
         fm = set_field(fm, "last_reviewed", today)
         logline = f"## [{today}] unpark | [[{stem}]] — back to active"
         note = f"\n\n## [{today}] UNPARKED\n"

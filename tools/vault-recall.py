@@ -26,7 +26,7 @@ ARCS_DIR = LAY["arcs_dir"]
 HOT_HEADING = LAY["hot_heading"]
 
 WIKILINK = re.compile(r"\[\[([^\]|#]+)")
-APPLIED = re.compile(r"^##\s*\[(\d{4}-\d{2}-\d{2})\]\s*applied\s*\|\s*\[\[([^\]]+)\]\]", re.M)
+APPLIED = re.compile(r"^##\s*\[(\d{4}-\d{2}-\d{2})\]\s*applied\s*\|\s*\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]", re.M)   # v1.4.1: [[page|alias]] and [[page#heading]] count as page
 
 EXCLUDE_DIRS = LAY["exclude_dirs"]
 EXCLUDE_STEMS = {"index", "log", "MEMORY", "AGENTS", "README", "discoveries"}

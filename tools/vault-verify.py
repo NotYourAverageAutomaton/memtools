@@ -187,6 +187,8 @@ def _grep_absent(arg, host):
     if "::" not in arg:
         return "UNKNOWN", "grep_absent needs <path>::<pattern>"
     path, pat = [x.strip() for x in arg.split("::", 1)]
+    if not host:
+        path = _local(path)   # v1.4.1: anchored like grep_in; a relative path no longer depends on the folder you run from
     ok, out = sh(f"if [ -e {q(path)} ]; then grep -c -- {q(pat)} {q(path)} 2>/dev/null; true; "
                  f"else echo __NOFILE__; fi", host)
     if out.startswith("__RUNFAIL__"):
@@ -220,6 +222,8 @@ def _git_tracked(arg, host):
         return "UNKNOWN", f"git_tracked needs <repo>::<path>, got {arg!r}"
     repo, _, rel = arg.partition("::")
     repo, rel = repo.strip(), rel.strip()
+    if not host:
+        repo = _local(repo)   # v1.4.1: anchored to the notes folder like the other kinds
     ok, out = sh(f"cd {q(repo)} 2>/dev/null && git rev-parse --is-inside-work-tree 2>&1", host)
     if out.startswith("__RUNFAIL__"):
         return "UNKNOWN", out
@@ -245,6 +249,8 @@ def _git_push_blocked(arg, host):
         return "UNKNOWN", f"git_push_blocked needs <repo>::<remote>, got {arg!r}"
     repo, _, remote = arg.partition("::")
     repo, remote = repo.strip(), remote.strip()
+    if not host:
+        repo = _local(repo)   # v1.4.1: anchored to the notes folder like the other kinds
     ok, out = sh(f"cd {q(repo)} 2>/dev/null && git rev-parse --is-inside-work-tree 2>&1", host)
     if out.startswith("__RUNFAIL__"):
         return "UNKNOWN", out
@@ -305,7 +311,7 @@ def _git_unpushed(arg, host):
     for repo, paths in dign.items():
         for x in paths:
             if any(c in x for c in "*?[]'\"\\ ") or x.endswith("/"):
-                return "ERROR", f"dirty exemption {repo}={x!r}: explicit file paths only (no globs, dirs, quotes or spaces)"
+                return "UNKNOWN", f"dirty exemption {repo}={x!r}: explicit file paths only (no globs, dirs, quotes or spaces)"   # v1.4.1: was "ERROR", which no tally counted
     dcase = "".join(f'{r}) set -- . ' + " ".join(f"':(exclude,literal){x}'" for x in ps) + ' ;; ' for r, ps in dign.items())
     dsel = f'case "$(basename "$r")" in {dcase}*) set -- ;; esac; ' if dign else 'set -- ; '
     cmd = (
@@ -467,7 +473,9 @@ def parse_claims(path: Path):
                     break
                 continue
             item = m.group(1)
-            item = re.sub(r"\s+#.*$", "", item).strip().strip('"\'')
+            # v1.4.1: a QUOTED claim is taken whole (a pattern may contain " #"); an unquoted one loses a trailing " # comment", as in YAML
+            qm = re.match(r"""^(["'])(.*)\1(\s+#.*)?$""", item)
+            item = qm.group(2).strip() if qm else re.sub(r"\s+#.*$", "", item).strip()
             host = ""
             for h in HOSTS:
                 if item.startswith(h + ":"):
